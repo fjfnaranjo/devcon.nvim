@@ -1,0 +1,41 @@
+*devcon.txt* generate basic dev container files with LSP support
+*devcon* *DevCon*
+
+                     ____            ______ ~
+                    / __ \___ _   __/ ____/___  ____ ~
+                   / / / / _ \ | / / /   / __ \/ __ \ ~
+                  / /_/ /  __/ |/ / /___/ /_/ / / / / ~
+                 /_____/\___/|___/\____/\____/_/ /_/ ~
+
+          Generate a basic set of files to add dev containers
+                 support to a project edited in Neovim.
+
+========================================================================
+CONTENTS
+
+    1. Rationale ..................................... |DevConRationale|
+    2. Usage ......................................... |DevConUsage|
+    3. Settings ...................................... |DevConSettings|
+    3. Commands ...................................... |DevConCommands|
+    4. Caveats ....................................... |DevConCaveats|
+
+========================================================================
+Section 1: Rationale                                   *DevConRationale*
+
+========================================================================
+Section 2: Usage                                           *DevConUsage*
+
+========================================================================
+Section 3: Settings                                     *DevConSettings*
+
+========================================================================
+Section 4: Commands                                     *DevConCommands*
+
+========================================================================
+Section 5: Caveats                                       *DevConCaveats*
+
+
+------------------------------------------------------------------------
+
+
+ vim:ft=help:tw=72:cc=73:ts=4:et:norl:
