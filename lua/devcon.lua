@@ -1,6 +1,7 @@
 local M = {}
 
-M.setup = function(opts) opts = opts or {}
+M.setup = function(opts)
+	opts = opts or {}
 	local s = {}
 	M.settings = s
 
@@ -17,13 +18,13 @@ M.setup = function(opts) opts = opts or {}
 		local pwd_cmd = io.popen("pwd")
 		s.root_dir = (
 			pwd_cmd:read("*l")
-			.."/"
-			..s.root_dir
+			.. "/"
+			.. s.root_dir
 		)
 	end
 
 	-- Force root_dir to be a "realpath"
-	s.root_dir = io.popen("realpath "..s.root_dir):read("*l")
+	s.root_dir = io.popen("realpath " .. s.root_dir):read("*l")
 
 	-- Parse or default base_image
 	if opts.base_image then
@@ -44,13 +45,13 @@ M.setup = function(opts) opts = opts or {}
 	s.extra_dirs = {}
 	if opts.extra_dirs then
 		for _, dir in ipairs(opts.extra_dirs) do
-			local realpath = io.popen("realpath "..dir):read("*l")
-			local test_dir = os.execute("test -d "..realpath)
+			local realpath = io.popen("realpath " .. dir):read("*l")
+			local test_dir = os.execute("test -d " .. realpath)
 			if test_dir == 0 then
 				table.insert(s.extra_dirs, realpath)
 			else
 				M.settings = nil
-				error("Directory '"..dir.."' does not exists.")
+				error("Directory '" .. dir .. "' does not exists.")
 			end
 		end
 	end
@@ -94,15 +95,15 @@ M.setup = function(opts) opts = opts or {}
 		"--rm",
 		"-i",
 		"-v",
-		s.root_dir..':'.. s.root_dir,
+		s.root_dir .. ':' .. s.root_dir,
 		"-w",
 		s.root_dir
 	}
 	for _, extra_dir in ipairs(s.extra_dirs) do
 		table.insert(lsp_cmd, "-v")
-		table.insert(lsp_cmd, extra_dir..':'.. extra_dir)
+		table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
 	end
-	table.insert(lsp_cmd, s.base_image..":"..s.devcon_tag)
+	table.insert(lsp_cmd, s.base_image .. ":" .. s.devcon_tag)
 
 	for lsp_server in pairs(s.lsp_servers) do
 		local lsp_extra_args = s.lsp_servers[lsp_server]
@@ -111,9 +112,8 @@ M.setup = function(opts) opts = opts or {}
 			cmd = lsp_cmd
 		}
 		for k, v in pairs(lsp_extra_args) do lsp_setup[k] = v end
-		require'lspconfig'[lsp_server].setup(lsp_setup)
+		require 'lspconfig'[lsp_server].setup(lsp_setup)
 	end
-
 end
 
 M.devconwrite = function()
