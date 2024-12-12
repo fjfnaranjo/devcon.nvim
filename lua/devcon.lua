@@ -1,5 +1,41 @@
 local M = {}
 
+M.devconsetup = function()
+	if not M.settings then
+		error("Call require('devcon').setup() first.")
+	end
+	local s = M.settings
+
+	-- TODO: Don't setup unless image is available
+
+	for server, sopts in pairs(s.lsp_servers) do
+		local lsp_cmd = {
+			s.cli,
+			"run",
+			"--rm",
+			"-i",
+			"-v",
+			sopts.root_dir .. ':' .. sopts.root_dir,
+			"-w",
+			sopts.root_dir
+		}
+
+		for _, extra_dir in pairs(sopts.extra_dirs) do
+			table.insert(lsp_cmd, "-v")
+			table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
+		end
+
+		table.insert(lsp_cmd, sopts.base_image .. ":" .. sopts.devcon_tag)
+
+		local lsp_config = sopts.config
+		lsp_config['root_dir'] = sopts.root_dir
+		lsp_config['cmd'] = lsp_cmd
+
+		require 'lspconfig'[server].setup(lsp_config)
+	end
+end
+vim.api.nvim_create_user_command('DevConSetup', M.devconsetup, {})
+
 M.setup = function(opts)
 	opts = opts or {}
 	local s = {}
@@ -88,28 +124,10 @@ M.setup = function(opts)
 		if not sopts.config then
 			sopts.config = {}
 		end
-
-		-- Setup LSP
-		local lsp_cmd = {
-			s.cli,
-			"run",
-			"--rm",
-			"-i",
-			"-v",
-			sopts.root_dir .. ':' .. sopts.root_dir,
-			"-w",
-			sopts.root_dir
-		}
-		for _, extra_dir in pairs(sopts.extra_dirs) do
-			table.insert(lsp_cmd, "-v")
-			table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
-		end
-		table.insert(lsp_cmd, sopts.base_image .. ":" .. sopts.devcon_tag)
-		local lsp_config = sopts.config
-		lsp_config['root_dir'] = sopts.root_dir
-		lsp_config['cmd'] = lsp_cmd
-		require 'lspconfig'[server].setup(lsp_config)
 	end
+
+	-- Call lspsetup after devcon.setup
+	M.devconsetup()
 end
 
 M.devconwrite = function()
