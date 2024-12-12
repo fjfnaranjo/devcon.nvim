@@ -1,14 +1,30 @@
 local M = {}
 
 M.devconsetup = function()
+	-- Calls lspconfig.server.setup() for each of the configured servers
+	--
+	-- This is the core function of the plugin. Normal lspconfig cmd's
+	-- are transformed to docker/podman run commands here.
+
+	-- Require and alias M.settings
 	if not M.settings then
 		error("Call require('devcon').setup() first.")
 	end
 	local s = M.settings
 
-	-- TODO: Don't setup unless image is available
-
+	-- For each configured server ...
 	for server, sopts in pairs(s.lsp_servers) do
+		--- ... checks that the image is already available ...
+		local full_image_name = sopts.base_image .. ":" .. sopts.devcon_tag
+		local test_image = os.execute(s.cli .. " image exists " .. full_image_name)
+		if test_image ~= 0 then
+			error(
+				"Image " .. full_image_name .. " doesn't exists."
+				.. "Maybe try :DevConBuild first."
+			)
+		end
+
+		-- ... and build LSP config to call setup()
 		local lsp_cmd = {
 			s.cli,
 			"run",
@@ -25,7 +41,7 @@ M.devconsetup = function()
 			table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
 		end
 
-		table.insert(lsp_cmd, sopts.base_image .. ":" .. sopts.devcon_tag)
+		table.insert(lsp_cmd, full_image_name)
 
 		local lsp_config = sopts.config
 		lsp_config['root_dir'] = sopts.root_dir
@@ -37,6 +53,11 @@ end
 vim.api.nvim_create_user_command('DevConSetup', M.devconsetup, {})
 
 M.setup = function(opts)
+	-- .setup() for devcon
+	--
+	-- Mainly validates devcon options.
+
+	-- Defaults and aliases
 	opts = opts or {}
 	local s = {}
 	M.settings = s
@@ -126,23 +147,84 @@ M.setup = function(opts)
 		end
 	end
 
-	-- Call lspsetup after devcon.setup
+	-- Call lspconfig.setups after devcon.setup
 	M.devconsetup()
 end
 
 M.devconwrite = function()
+	-- Writes the Dockerfile/Containerfile from a library of templates
+
+	-- Require and alias M.settings
 	if not M.settings then
 		error("Call require('devcon').setup() first.")
 	end
 	local s = M.settings
+
+	-- TODO: Create the files ...
 end
 vim.api.nvim_create_user_command('DevConWrite', M.devconwrite, {})
 
 M.devconbuild = function()
+	-- Issues a docker/podman build command for the LSP containers
+
+	-- Require and alias M.settings
 	if not M.settings then
 		error("Call require('devcon').setup() first.")
 	end
 	local s = M.settings
+
+	-- For each server we crate windows with the stdout of the command
+	local last_win = 0
+	for _, sopts in pairs(s.lsp_servers) do
+		-- But first, we make sure that the Containerfile is available
+		local test_containerfile = os.execute("test -e " .. sopts.containerfile)
+		if test_containerfile ~= 0 then
+			error("containerfile " .. sopts.containerfile .. " doesn't exists. Maybe try :DevConWrite first.")
+		end
+
+		-- Prepares the build command
+		local full_image_name =
+				sopts.base_image .. ":" .. sopts.devcon_tag
+		local cmd = {
+			s.cli, "build",
+			"-t", full_image_name,
+			"-f", sopts.containerfile,
+			"."
+		}
+
+		-- Issues the command in new buffers/windows
+		local b = vim.api.nvim_create_buf(false, true)
+		local c = vim.api.nvim_open_term(b, {})
+		if last_win == 0 then
+			last_win = vim.api.nvim_open_win(b, true, {
+				vertical = true,
+				win = last_win,
+				style = 'minimal'
+			})
+		else
+			last_win = vim.api.nvim_open_win(b, false, {
+				win = last_win,
+				style = 'minimal'
+			})
+		end
+		vim.system(cmd, {
+			stdout = function(_, data)
+				vim.schedule(function()
+					vim.api.nvim_chan_send(c, data or "")
+				end)
+			end,
+			stderr = function(_, data)
+				vim.schedule(function()
+					vim.api.nvim_chan_send(c, data or "")
+				end)
+			end
+		}, function(obj)
+			vim.schedule(function()
+				vim.api.nvim_chan_send(c, obj.stdout or "")
+				vim.api.nvim_chan_send(c, obj.stderr or "")
+			end)
+		end)
+	end
 end
 vim.api.nvim_create_user_command('DevConBuild', M.devconbuild, {})
 
