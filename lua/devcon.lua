@@ -164,7 +164,7 @@ M.devconbuild = function(silent)
 
 	-- For each server create terminal windows for the build commands.
 	local last_win = 0
-	for _, sopts in pairs(s.lsp_servers) do
+	for server, sopts in pairs(s.lsp_servers) do
 		-- Prepare the build command.
 		local full_image_name =
 				sopts.base_image .. ":" .. sopts.devcon_tag
@@ -176,7 +176,8 @@ M.devconbuild = function(silent)
 		}
 
 		-- Issue the command in newly created buffers and windows.
-		local b = vim.api.nvim_create_buf(silent, true)
+		local b = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_name(b, "devcon." .. server)
 		local c = vim.api.nvim_open_term(b, {})
 		if not silent and last_win == 0 then
 			last_win = vim.api.nvim_open_win(b, true, {
