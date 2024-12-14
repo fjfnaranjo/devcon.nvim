@@ -1,10 +1,7 @@
 local M = {}
 
+--- Validates devcon plugin options and bootstraps the plugin.
 M.setup = function(opts)
-	-- .setup() for devcon.
-	--
-	-- Validates some devcon options and bootstraps the plugin.
-
 	-- Defaults and aliases.
 	opts = opts or {}
 	local s = {}
@@ -131,9 +128,8 @@ M.setup = function(opts)
 	end
 end
 
+--- Writes Dockerfile/Containerfile files from a library of templates.
 M.devconwrite = function()
-	-- Write Dockerfile/Containerfile files from a library of templates.
-
 	-- Require and alias M.settings .
 	if not M.settings then
 		error("Call require('devcon').setup() first.")
@@ -148,9 +144,10 @@ M.devconwrite = function()
 	end
 end
 
+--- Issues a docker/podman build command for each LSP container.
+---
+--- @param silent boolean Don't show build buffer contents.
 M.devconbuild = function(silent)
-	-- Issue a docker/podman build command for each LSP container.
-
 	-- Require and alias M.settings .
 	if not M.settings then
 		error("Call require('devcon').setup() first.")
@@ -220,14 +217,13 @@ M.devconbuild = function(silent)
 	end
 end
 
+--- Requires and call 'lspconfig'[SERVER].setup() for each of the
+--- configured (SERVER)s.
+---
+--- This is the core function of the plugin. Normal lspconfig cmd's
+--- are transformed to docker/podman run commands here. Also, the
+--- proper volumes are added here.
 M.devconsetup = function()
-	-- Require and call 'lspconfig'[SERVER].setup() for each of the
-	-- configured (SERVER)s.
-	--
-	-- This is the core function of the plugin. Normal lspconfig cmd's
-	-- are transformed to docker/podman run commands here. Also, the
-	-- proper volumes are added here.
-
 	-- Require and alias M.settings .
 	if not M.settings then
 		error("Call require('devcon').setup() first.")
