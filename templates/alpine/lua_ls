@@ -1,0 +1,10 @@
+FROM {{ base_image|alpine }}:{{ base_tag|latest }}
+RUN apk add --no-cache luajit libgcc
+RUN wget \
+	https://github.com/LuaLS/lua-language-server/releases/download/3.13.2/lua-language-server-3.13.2-linux-x64-musl.tar.gz \
+	-O /tmp/llsp.tar.gz \
+	&& mkdir -p /opt/lua-language-server \
+	&& tar xzf /tmp/llsp.tar.gz -C /opt/lua-language-server \
+	&& rm -f /tmp/llsp.tar.gz
+ENV PATH=/opt/lua-language-server/bin:$PATH
+ENTRYPOINT lua-language-server
