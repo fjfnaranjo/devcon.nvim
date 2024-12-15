@@ -19,9 +19,8 @@ M.setup = function(opts)
 	end
 
 	-- Require lsp_servers setting.
-	if opts.lsp_servers then
-		s.lsp_servers = opts.lsp_servers
-	else
+	s.lsp_servers = opts.lsp_servers
+	if not opts.lsp_servers or type(opts.lsp_servers) ~= 'table' then
 		M.settings = nil
 		error("lsp_servers is required by devcon.setup() .")
 	end
@@ -35,7 +34,7 @@ M.setup = function(opts)
 	-- For each lspconfig server ...
 	for server, sopts in pairs(s.lsp_servers) do
 		-- Require root_dir setting.
-		if not sopts.root_dir then
+		if not sopts.root_dir or type(sopts.root_dir) ~= 'string' then
 			M.settings = nil
 			error("root_dir is required for server '" .. server .. "' int devcon.setup() .")
 		end
@@ -69,25 +68,20 @@ M.setup = function(opts)
 			sopts.template = "alpine/" .. server
 		end
 
-		-- Parse or set default base_image setting.
-		if not sopts.base_image then
-			local project_dir_name = sopts.root_dir:gsub('.*%/', '')
-			sopts.base_image = project_dir_name
-		end
-
-		-- Parse or set default base_tag setting.
-		if not sopts.base_tag then
-			s.base_tag = 'latest'
-		end
-
-		-- Parse or set default containerfile setting.
-		if not sopts.containerfile then
-			sopts.containerfile = 'Dockerfile.' .. server .. '.devcon'
+		-- Parse or set default devcon_image setting.
+		local project_dir_name = sopts.root_dir:gsub('.*%/', '')
+		if not sopts.devcon_image then
+			sopts.devcon_image = project_dir_name
 		end
 
 		-- Parse or set default devcon_tag setting.
 		if not sopts.devcon_tag then
 			sopts.devcon_tag = 'devcon'
+		end
+
+		-- Parse or set default containerfile setting.
+		if not sopts.containerfile then
+			sopts.containerfile = 'Dockerfile.' .. server .. '.devcon'
 		end
 
 		-- Check each dir in extra_dirs setting exists.
@@ -136,7 +130,36 @@ M.devconwrite = function()
 	end
 	local s = M.settings
 
-	-- TODO: Create the files ...
+	-- For each lspconfig server ...
+	for _, sopts in pairs(s.lsp_servers) do
+		-- Get template contents.
+		local plugin_path = debug.getinfo(1, "S").source:match("@(.*/)")
+		local template_path = (
+			plugin_path
+			.. "../templates/"
+			.. sopts.template
+		)
+		local template = io.open(template_path, 'rb')
+		if not template then
+			error("Cannot read template file " .. template_path)
+		end
+		local template_content = template:read("*a")
+
+		-- Write containerfile.
+		template_content, _ = template_content:gsub(
+			'{{[ ]*base_image|([^ ]*)[ ]*}}',
+			sopts.base_image or '%1'
+		)
+		template_content, _ = template_content:gsub(
+			'{{[ ]*base_tag|([^ ]*)[ ]*}}',
+			sopts.base_tag or '%1'
+		)
+		local template_file = io.open(sopts.containerfile, 'wb')
+		if not template_file then
+			error("Cannot open containerfile to write " .. sopts.containerfile)
+		end
+		template_file:write(template_content)
+	end
 
 	-- Chain call to other devcon commands.
 	if s.chain_build then
@@ -167,7 +190,7 @@ M.devconbuild = function(silent)
 	for server, sopts in pairs(s.lsp_servers) do
 		-- Prepare the build command.
 		local full_image_name =
-				sopts.base_image .. ":" .. sopts.devcon_tag
+				sopts.devcon_image .. ":" .. sopts.devcon_tag
 		local cmd = {
 			s.cli, "build",
 			"-t", full_image_name,
@@ -233,7 +256,7 @@ M.devconsetup = function()
 
 	-- Check image exists for all configured servers
 	for _, soptst in pairs(s.lsp_servers) do
-		local full_image_name = soptst.base_image .. ":" .. soptst.devcon_tag
+		local full_image_name = soptst.devcon_image .. ":" .. soptst.devcon_tag
 		local test_image = os.execute(s.cli .. " image exists " .. full_image_name)
 		if test_image ~= 0 then
 			error(
@@ -245,7 +268,7 @@ M.devconsetup = function()
 
 	-- Call LSP config for each configured server.
 	for server, sopts in pairs(s.lsp_servers) do
-		local full_image_name = sopts.base_image .. ":" .. sopts.devcon_tag
+		local full_image_name = sopts.devcon_image .. ":" .. sopts.devcon_tag
 
 		local lsp_cmd = {
 			s.cli,
