@@ -1,5 +1,5 @@
 FROM {{ base_image|alpine }}:{{ base_tag|latest }}
-RUN apk add --no-cache luajit libgcc
+RUN apk add --no-cache libgcc
 RUN wget \
 	https://github.com/LuaLS/lua-language-server/releases/download/3.13.2/lua-language-server-3.13.2-linux-x64-musl.tar.gz \
 	-O /tmp/llsp.tar.gz \
