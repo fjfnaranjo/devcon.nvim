@@ -22,14 +22,87 @@ CONTENTS
 ========================================================================
 Section 1: Rationale                                   *DevConRationale*
 
+There are multiple Neovim plugins to use devcontainers. Some of them
+even embed Neovim inside the container and add loads of hassle to your
+workflows. With DevCon, you can keep using the simple layer provided by
+`nvim-lspconfig` with all your local customizations and avoid polluting
+your system with multiple LSP servers and libraries.
+
+The key is using you local Neovim with a container runtime (Docker or
+Podman) to keep all LSP stuff inside a disposable container. Full
+integration is achieved by using volume mounts with the project folder
+and local library paths in exactly the same paths inside the container.
+
+With DevCon, an some tweaks to the config if needed, the creation of
+containerfiles, building of images and injecting the settings are
+streamlined using a few commands and handy provided templates.
+
 ========================================================================
 Section 2: Usage                                           *DevConUsage*
 
 ========================================================================
 Section 3: Settings                                     *DevConSettings*
 
+opts = {
+
+  (default to podman if available, else docker)
+  cli = 'docker',
+
+  (chain call other devcon commands)
+  chain_write = false,
+  chain_build = false,
+  chain_setup = false,
+
+  (always call lsp setup after plugin setup)
+  setup_on_load = true,
+
+  (required) (k is lspconfig server name and v has config)
+  lsp_servers = {
+
+    lua_ls = {
+
+      (required)
+      root_dir = '/some/path/to/project',
+
+      (default to alpine/-server-)
+      template = 'alpine/lua_ls'
+
+      (default to nil, will use Dockerfile template contents)
+      base_image = 'alpine',
+
+      (default to nil, will use Dockerfile template contents)
+      base_tag = 'latest',
+
+      (default to project dir name)
+      devcon_image = 'project',
+
+      (default to devcon)
+      devcon_tag = 'devcon',
+
+      (default to Dockerfile.server.devcon)
+      containerfile = 'Dockerfile.lua_ls.devcon
+
+      (default to empty table)
+      extra_dirs = { '/other/path/to/lib' },
+
+      (default to empty table)
+      config {
+        on_attach = ?
+        capabilities = ?
+      }
+
+    }
+  }
+
+}
+
+
 ========================================================================
 Section 4: Commands                                     *DevConCommands*
+
+DevConWrite
+DevConBuild
+DevConSetup
 
 ========================================================================
 Section 5: Caveats                                       *DevConCaveats*
