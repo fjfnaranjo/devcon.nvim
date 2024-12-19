@@ -12,9 +12,12 @@ M.setup = function(opts)
 	if not s.cli then
 		s.cli = 'docker'
 		local podman_v = io.popen("podman -v 2>/dev/null")
-		local podman_v_read = podman_v and podman_v:read(1) == "p" or false
-		if podman_v_read then
-			s.cli = 'podman'
+		if podman_v then
+			local podman_v_read = podman_v:read(1) == "p" or false
+			podman_v:close()
+			if podman_v_read then
+				s.cli = 'podman'
+			end
 		end
 	end
 
@@ -47,6 +50,7 @@ M.setup = function(opts)
 				error("Error calling 'pwd' to create an absolute path.")
 			else
 				local podman_cmd_read = pwd_cmd:read("*l")
+				pwd_cmd:close()
 				sopts.root_dir = (
 					podman_cmd_read
 					.. "/"
@@ -62,6 +66,7 @@ M.setup = function(opts)
 			error("Error calling 'realpath' to create an real path.")
 		end
 		sopts.root_dir = realpath_cmd:read("*l")
+		realpath_cmd:close()
 
 		-- Parse or set default template setting.
 		if not sopts.template then
@@ -93,6 +98,7 @@ M.setup = function(opts)
 					error("Error calling 'realpath' to create an real path.")
 				end
 				local s_realpath = s_realpath_cmd:read("*l")
+				s_realpath_cmd:close()
 				local test_dir = os.execute("test -d " .. s_realpath)
 				if test_dir ~= 0 then
 					M.settings = nil
@@ -144,6 +150,7 @@ M.devconwrite = function()
 			error("Cannot read template file " .. template_path)
 		end
 		local template_content = template:read("*a")
+		template:close()
 
 		-- Write containerfile.
 		template_content, _ = template_content:gsub(
@@ -159,6 +166,7 @@ M.devconwrite = function()
 			error("Cannot open containerfile to write " .. sopts.containerfile)
 		end
 		template_file:write(template_content)
+		template_file:close()
 	end
 
 	-- Chain call to other devcon commands.
