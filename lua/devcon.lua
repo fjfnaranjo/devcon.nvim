@@ -265,7 +265,7 @@ M.devconsetup = function()
 	-- Check image exists for all configured servers
 	for _, soptst in pairs(s.lsp_servers) do
 		local full_image_name = soptst.devcon_image .. ":" .. soptst.devcon_tag
-		local test_image = os.execute(s.cli .. " image exists " .. full_image_name)
+		local test_image = os.execute(s.cli .. " image inspect " .. full_image_name .. " 2>/dev/null")
 		if test_image ~= 0 then
 			error(
 				"Image " .. full_image_name .. " doesn't exists."
