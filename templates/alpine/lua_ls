@@ -7,4 +7,4 @@ RUN wget \
 	&& tar xzf /tmp/llsp.tar.gz -C /opt/lua-language-server \
 	&& rm -f /tmp/llsp.tar.gz
 ENV PATH=/opt/lua-language-server/bin:$PATH
-ENTRYPOINT lua-language-server
+ENTRYPOINT ["lua-language-server"]
