@@ -25,7 +25,8 @@ M.setup = function(opts)
 	s.lsp_servers = opts.lsp_servers
 	if not opts.lsp_servers or type(opts.lsp_servers) ~= 'table' then
 		M.settings = nil
-		error("lsp_servers is required by devcon.setup() .")
+		vim.print("lsp_servers is required by devcon.setup() .")
+		return
 	end
 
 	-- Parse or set default chained commands setting.
@@ -39,7 +40,8 @@ M.setup = function(opts)
 		-- Require root_dir setting.
 		if not sopts.root_dir or type(sopts.root_dir) ~= 'string' then
 			M.settings = nil
-			error("root_dir is required for server '" .. server .. "' int devcon.setup() .")
+			vim.print("root_dir is required for server '" .. server .. "' int devcon.setup() .")
+			return
 		end
 
 		-- Make root_dir absolute if it is not.
@@ -47,7 +49,8 @@ M.setup = function(opts)
 			local pwd_cmd = io.popen("pwd")
 			if not pwd_cmd then
 				M.settings = nil
-				error("Error calling 'pwd' to create an absolute path.")
+				vim.print("Error calling 'pwd' to create an absolute path.")
+				return
 			else
 				local podman_cmd_read = pwd_cmd:read("*l")
 				pwd_cmd:close()
@@ -63,7 +66,8 @@ M.setup = function(opts)
 		local realpath_cmd = io.popen("realpath " .. sopts.root_dir)
 		if not realpath_cmd then
 			M.settings = nil
-			error("Error calling 'realpath' to create an real path.")
+			vim.print("Error calling 'realpath' to create an real path.")
+			return
 		end
 		sopts.root_dir = realpath_cmd:read("*l")
 		realpath_cmd:close()
@@ -95,14 +99,16 @@ M.setup = function(opts)
 				local s_realpath_cmd = io.popen("realpath " .. dir)
 				if not s_realpath_cmd then
 					M.settings = nil
-					error("Error calling 'realpath' to create an real path.")
+					vim.print("Error calling 'realpath' to create an real path.")
+					return
 				end
 				local s_realpath = s_realpath_cmd:read("*l")
 				s_realpath_cmd:close()
 				local test_dir = os.execute("test -d " .. s_realpath)
 				if test_dir ~= 0 then
 					M.settings = nil
-					error("Directory '" .. dir .. "' for server '" .. server .. "' does not exists.")
+					vim.print("Directory '" .. dir .. "' for server '" .. server .. "' does not exists.")
+					return
 				end
 			end
 		else
@@ -132,7 +138,8 @@ end
 M.devconwrite = function()
 	-- Require and alias M.settings .
 	if not M.settings then
-		error("Call require('devcon').setup() first.")
+		vim.print("Call require('devcon').setup() first.")
+		return
 	end
 	local s = M.settings
 
@@ -147,7 +154,8 @@ M.devconwrite = function()
 		)
 		local template = io.open(template_path, 'rb')
 		if not template then
-			error("Cannot read template file " .. template_path)
+			vim.print("Cannot read template file " .. template_path)
+			return
 		end
 		local template_content = template:read("*a")
 		template:close()
@@ -163,7 +171,8 @@ M.devconwrite = function()
 		)
 		local template_file = io.open(sopts.containerfile, 'wb')
 		if not template_file then
-			error("Cannot open containerfile to write " .. sopts.containerfile)
+			vim.print("Cannot open containerfile to write " .. sopts.containerfile)
+			return
 		end
 		template_file:write(template_content)
 		template_file:close()
@@ -181,7 +190,8 @@ end
 M.devconbuild = function(silent)
 	-- Require and alias M.settings .
 	if not M.settings then
-		error("Call require('devcon').setup() first.")
+		vim.print("Call require('devcon').setup() first.")
+		return
 	end
 	local s = M.settings
 
@@ -189,7 +199,8 @@ M.devconbuild = function(silent)
 	for _, soptst in pairs(s.lsp_servers) do
 		local test_containerfile = os.execute("test -e " .. soptst.containerfile)
 		if test_containerfile ~= 0 then
-			error("containerfile " .. soptst.containerfile .. " doesn't exists. Maybe try :DevConWrite first.")
+			vim.print("containerfile " .. soptst.containerfile .. " doesn't exists. Maybe try :DevConWrite first.")
+			return
 		end
 	end
 
@@ -258,7 +269,8 @@ end
 M.devconsetup = function()
 	-- Require and alias M.settings .
 	if not M.settings then
-		error("Call require('devcon').setup() first.")
+		vim.print("Call require('devcon').setup() first.")
+		return
 	end
 	local s = M.settings
 
@@ -267,10 +279,11 @@ M.devconsetup = function()
 		local full_image_name = soptst.devcon_image .. ":" .. soptst.devcon_tag
 		local test_image = os.execute(s.cli .. " image inspect " .. full_image_name .. " 2>/dev/null")
 		if test_image ~= 0 then
-			error(
+			vim.print(
 				"Image " .. full_image_name .. " doesn't exists."
 				.. "Maybe try :DevConBuild first."
 			)
+			return
 		end
 	end
 
