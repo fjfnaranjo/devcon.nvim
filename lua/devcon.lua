@@ -153,6 +153,33 @@ M.setup = function(opts)
 		end
 	end
 
+	-- Guess docker/podman arch is not specified.
+	s.arch = opts.arch
+	if not s.arch then
+		local docker_cli_cmd = s.cli .. " info --format '{{ .Server.Architecture }}' 2>/dev/null"
+		local docker_shell = io.popen(docker_cli_cmd)
+		if docker_shell then
+			s.arch = docker_shell:read("*a")
+			docker_shell:close()
+		end
+		if s.arch:len()<1 then
+			local podman_cli_cmd = s.cli .. " info --format '{{ .Host.Arch }}' 2>/dev/null"
+			local podman_shell = io.popen(podman_cli_cmd)
+			if podman_shell then
+				s.arch = podman_shell:read("*a")
+				podman_shell:close()
+			end
+			if s.arch:len()<1 then
+				M.settings = nil
+				vim.print(
+					"Cannot determine container runtime architecture using '"
+					.. s.cli .. " info' commands."
+				)
+				return
+			end
+		end
+	end
+
 	-- Create Neovim user commands.
 	vim.api.nvim_create_user_command('DevConWrite', M.devconwrite, {})
 	vim.api.nvim_create_user_command('DevConBuild', M.devconbuild, {})

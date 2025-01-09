@@ -54,6 +54,9 @@ opts = {
   (default to podman if available, else docker)
   cli = 'docker',
 
+  (optional, guessed from cli)
+  arch = 'amd64',
+
   (chain call other devcon commands)
   chain_write = false,
   chain_build = false,
