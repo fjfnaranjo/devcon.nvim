@@ -45,6 +45,12 @@ Section 3: Settings                                     *DevConSettings*
 
 opts = {
 
+  (required here or in each LSP server block)
+  root_dir = '/some/path/to/project',
+
+  (optional)
+  config_lsp = function...,
+
   (default to podman if available, else docker)
   cli = 'docker',
 
@@ -61,8 +67,11 @@ opts = {
 
     lua_ls = {
 
-      (required)
+      (required here or in the root configs)
       root_dir = '/some/path/to/project',
+
+      (optional)
+      config_lsp = function...,
 
       (default to alpine/-server-)
       template = 'alpine/lua_ls'

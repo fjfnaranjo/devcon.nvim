@@ -1,5 +1,49 @@
 local M = {}
 
+--- Prepares paths for usage as docker/podman volumes.
+local function normalize_path(path)
+	-- If path is a function, let it pass.
+	if type(path) == 'function' then
+		return path
+	end
+
+	-- Make path absolute if it is not.
+	if path:sub(1, 1) ~= "/" then
+		local pwd_cmd = io.popen("pwd")
+		if not pwd_cmd then
+			M.settings = nil
+			vim.print(
+				"Error calling 'pwd' to create an absolute path for "
+				.. path .. " ."
+			)
+			return
+		else
+			local podman_cmd_read = pwd_cmd:read("*l")
+			pwd_cmd:close()
+			path = (
+				podman_cmd_read
+				.. "/"
+				.. path
+			)
+		end
+	end
+
+	-- Force path to be a "realpath".
+	local realpath_cmd = io.popen("realpath " .. path)
+	if not realpath_cmd then
+		M.settings = nil
+		vim.print(
+			"Error calling 'realpath' to create an real path from "
+			.. path .. " ."
+		)
+		return
+	end
+	path = realpath_cmd:read("*l")
+	realpath_cmd:close()
+
+	return path
+end
+
 --- Validates devcon plugin options and bootstraps the plugin.
 M.setup = function(opts)
 	-- Defaults and aliases.
@@ -35,42 +79,30 @@ M.setup = function(opts)
 	s.chain_setup = opts.chain_setup or false
 	s.setup_on_load = opts.setup_on_load or true
 
+	-- If root_dir is specified at this level, filter it.
+	if opts.root_dir then
+		opts.root_dir = normalize_path(opts.root_dir)
+	end
+
 	-- For each lspconfig server ...
 	for server, sopts in pairs(s.lsp_servers) do
 		-- Require root_dir setting.
-		if not sopts.root_dir or type(sopts.root_dir) ~= 'string' then
-			M.settings = nil
-			vim.print("root_dir is required for server '" .. server .. "' int devcon.setup() .")
-			return
-		end
-
-		-- Make root_dir absolute if it is not.
-		if sopts.root_dir:sub(1, 1) ~= "/" then
-			local pwd_cmd = io.popen("pwd")
-			if not pwd_cmd then
+		if not sopts.root_dir then
+			if not opts.root_dir then
 				M.settings = nil
-				vim.print("Error calling 'pwd' to create an absolute path.")
+				vim.print("root_dir is required for server '" .. server .. "' int devcon.setup() .")
 				return
 			else
-				local podman_cmd_read = pwd_cmd:read("*l")
-				pwd_cmd:close()
-				sopts.root_dir = (
-					podman_cmd_read
-					.. "/"
-					.. sopts.root_dir
-				)
+				sopts.root_dir = opts.root_dir
 			end
+		else
+			sopts.root_dir = normalize_path(sopts.root_dir)
 		end
 
-		-- Force root_dir to be a "realpath".
-		local realpath_cmd = io.popen("realpath " .. sopts.root_dir)
-		if not realpath_cmd then
-			M.settings = nil
-			vim.print("Error calling 'realpath' to create an real path.")
-			return
+		-- Take config_lsp function from root or from here.
+		if not sopts.config_lsp and opts.config_lsp then
+			sopts.config_lsp = opts.config_lsp
 		end
-		sopts.root_dir = realpath_cmd:read("*l")
-		realpath_cmd:close()
 
 		-- Parse or set default template setting.
 		if not sopts.template then
@@ -274,7 +306,7 @@ M.devconsetup = function()
 	end
 	local s = M.settings
 
-	-- Check image exists for all configured servers
+	-- Check image exists for all configured servers.
 	for _, soptst in pairs(s.lsp_servers) do
 		local full_image_name = soptst.devcon_image .. ":" .. soptst.devcon_tag
 		local test_image = os.execute(s.cli .. " image inspect " .. full_image_name .. " 2>/dev/null")
@@ -291,6 +323,7 @@ M.devconsetup = function()
 	for server, sopts in pairs(s.lsp_servers) do
 		local full_image_name = sopts.devcon_image .. ":" .. sopts.devcon_tag
 
+		-- Build docker/podman run command.
 		local lsp_cmd = {
 			s.cli,
 			"run",
@@ -306,10 +339,26 @@ M.devconsetup = function()
 			table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
 		end
 		table.insert(lsp_cmd, full_image_name)
-		local lsp_config = sopts.config
-		lsp_config['root_dir'] = sopts.root_dir
-		lsp_config['cmd'] = lsp_cmd
 
+		-- When calculating each server config, try to use a default
+		-- configurer if specified or use passover.
+		local lsp_config = {}
+		local config_lsp = function(x) return x end
+		if type(sopts.config_lsp) == "function" then
+			config_lsp = sopts.config_lsp
+		end
+		local sopts_config = {}
+		if sopts.config then
+			sopts_config = sopts.config
+		end
+		lsp_config = config_lsp(sopts_config)
+
+		-- Always populate config with root_dir if missing.
+		if not lsp_config.root_dir then
+			lsp_config['root_dir'] = sopts.root_dir
+		end
+
+		lsp_config['cmd'] = lsp_cmd
 		require 'lspconfig'[server].setup(lsp_config)
 	end
 end
