@@ -84,6 +84,33 @@ M.setup = function(opts)
 		opts.root_dir = normalize_path(opts.root_dir)
 	end
 
+	-- Guess docker/podman arch is not specified.
+	s.arch = opts.arch
+	if not s.arch then
+		local docker_cli_cmd = s.cli .. " info --format '{{ .Server.Architecture }}' 2>/dev/null"
+		local docker_shell = io.popen(docker_cli_cmd)
+		if docker_shell then
+			s.arch = docker_shell:read("*l")
+			docker_shell:close()
+		end
+		if not s.arch then
+			local podman_cli_cmd = s.cli .. " info --format '{{ .Host.Arch }}' 2>/dev/null"
+			local podman_shell = io.popen(podman_cli_cmd)
+			if podman_shell then
+				s.arch = podman_shell:read("*l")
+				podman_shell:close()
+			end
+			if s.arch:len()<1 then
+				M.settings = nil
+				vim.print(
+					"Cannot determine container runtime architecture using '"
+					.. s.cli .. " info' commands."
+				)
+				return
+			end
+		end
+	end
+
 	-- For each lspconfig server ...
 	for server, sopts in pairs(s.lsp_servers) do
 		-- Require root_dir setting.
@@ -106,7 +133,7 @@ M.setup = function(opts)
 
 		-- Parse or set default template setting.
 		if not sopts.template then
-			sopts.template = "alpine/" .. server
+			sopts.template = server .. "/alpine/" .. s.arch
 		end
 
 		-- Parse or set default devcon_image setting.
@@ -153,33 +180,6 @@ M.setup = function(opts)
 		end
 	end
 
-	-- Guess docker/podman arch is not specified.
-	s.arch = opts.arch
-	if not s.arch then
-		local docker_cli_cmd = s.cli .. " info --format '{{ .Server.Architecture }}' 2>/dev/null"
-		local docker_shell = io.popen(docker_cli_cmd)
-		if docker_shell then
-			s.arch = docker_shell:read("*a")
-			docker_shell:close()
-		end
-		if s.arch:len()<1 then
-			local podman_cli_cmd = s.cli .. " info --format '{{ .Host.Arch }}' 2>/dev/null"
-			local podman_shell = io.popen(podman_cli_cmd)
-			if podman_shell then
-				s.arch = podman_shell:read("*a")
-				podman_shell:close()
-			end
-			if s.arch:len()<1 then
-				M.settings = nil
-				vim.print(
-					"Cannot determine container runtime architecture using '"
-					.. s.cli .. " info' commands."
-				)
-				return
-			end
-		end
-	end
-
 	-- Create Neovim user commands.
 	vim.api.nvim_create_user_command('DevConWrite', M.devconwrite, {})
 	vim.api.nvim_create_user_command('DevConBuild', M.devconbuild, {})
@@ -205,19 +205,36 @@ M.devconwrite = function()
 	-- For each lspconfig server ...
 	for _, sopts in pairs(s.lsp_servers) do
 		-- Get template contents.
+		local template_content = ""
 		local plugin_path = debug.getinfo(1, "S").source:match("@(.*/)")
-		local template_path = (
+		local arch_path = (
 			plugin_path
 			.. "../templates/"
 			.. sopts.template
 		)
-		local template = io.open(template_path, 'rb')
-		if not template then
-			vim.print("Cannot read template file " .. template_path)
-			return
+		local arch_template = io.open(arch_path, 'rb')
+		if arch_template then
+			template_content = arch_template:read("*a")
+			arch_template:close()
+		else
+			local any_path = (
+				plugin_path
+				.. "../templates/"
+				.. sopts.template:match("(.+)/[^/]+$")
+				.. "/any"
+			)
+			local any_template = io.open(any_path, 'rb')
+			if any_template then
+				template_content = any_template:read("*a")
+				any_template:close()
+			else
+				vim.print(
+					"Cannot read template file. Tried: "
+					.. arch_path .. " and " .. any_path .. " ."
+				)
+				return
+			end
 		end
-		local template_content = template:read("*a")
-		template:close()
 
 		-- Write containerfile.
 		template_content, _ = template_content:gsub(

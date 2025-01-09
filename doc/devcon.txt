@@ -48,8 +48,8 @@ opts = {
   (required here or in each LSP server block)
   root_dir = '/some/path/to/project',
 
-  (optional)
-  config_lsp = function...,
+  (optional, to add extra values to LSP server configs)
+  config_lsp = function (x) return x end,
 
   (default to podman if available, else docker)
   cli = 'docker',
@@ -76,8 +76,8 @@ opts = {
       (optional)
       config_lsp = function...,
 
-      (default to alpine/-server-)
-      template = 'alpine/lua_ls'
+      (optional server/image/arch default to -server-/alpine/-arch-)
+      template = 'lua_ls/alpine/amd64'
 
       (default to nil, will use Dockerfile template contents)
       base_image = 'alpine',
