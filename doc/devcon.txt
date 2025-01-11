@@ -45,65 +45,64 @@ Section 3: Settings                                     *DevConSettings*
 
 opts = {
 
-  (required here or in each LSP server block)
-  root_dir = '/some/path/to/project',
-
-  (optional, to add extra values to LSP server configs)
-  config_lsp = function (x) return x end,
+  (optional, for manual lazy loading)
+  lazy = false,
 
   (default to podman if available, else docker)
   cli = 'docker',
 
+  (required) (k is lspconfig server name and v has config)
+  lsp_servers = {
+    lua_ls = {
+      ... (see below)
+    }
+  }
+
+  (required here or in each LSP server block)
+  root_dir = '/some/path/to/project',
+
   (optional, guessed from cli)
   arch = 'amd64',
 
-  (chain call other devcon commands)
-  chain_write = false,
-  chain_build = false,
-  chain_setup = false,
+  (optional, to add extra values to LSP server configs)
+  config_lsp = function (x) return x end,
 
-  (always call lsp setup after plugin setup)
-  setup_on_load = true,
+}
 
-  (required) (k is lspconfig server name and v has config)
-  lsp_servers = {
 
-    lua_ls = {
+lua_ls = {
 
-      (required here or in the root configs)
-      root_dir = '/some/path/to/project',
+  (required here or in the root configs)
+  root_dir = '/some/path/to/project',
 
-      (optional)
-      config_lsp = function...,
+  (optional)
+  config_lsp = function...,
 
-      (optional server/image/arch default to -server-/alpine/-arch-)
-      template = 'lua_ls/alpine/amd64'
+  (optional server/image/arch default to -server-/alpine/-arch-)
+  template = 'lua_ls/alpine/amd64'
 
-      (default to nil, will use Dockerfile template contents)
-      base_image = 'alpine',
+  (default to nil, will use Dockerfile template contents)
+  base_image = 'alpine',
 
-      (default to nil, will use Dockerfile template contents)
-      base_tag = 'latest',
+  (default to nil, will use Dockerfile template contents)
+  base_tag = 'latest',
 
-      (default to project dir name)
-      devcon_image = 'project',
+  (default to project dir name)
+  devcon_image = 'project',
 
-      (default to devcon)
-      devcon_tag = 'devcon',
+  (default to devcon)
+  devcon_tag = 'devcon',
 
-      (default to Dockerfile.server.devcon)
-      containerfile = 'Dockerfile.lua_ls.devcon
+  (default to Dockerfile.server.devcon)
+  containerfile = 'Dockerfile.lua_ls.devcon
 
-      (default to empty table)
-      extra_dirs = { '/other/path/to/lib' },
+  (default to empty table)
+  extra_dirs = { '/other/path/to/lib' },
 
-      (default to empty table)
-      config {
-        on_attach = ?
-        capabilities = ?
-      }
-
-    }
+  (default to empty table)
+  config {
+    on_attach = ?
+    capabilities = ?
   }
 
 }
@@ -112,9 +111,7 @@ opts = {
 ========================================================================
 Section 4: Commands                                     *DevConCommands*
 
-DevConWrite
-DevConBuild
-DevConSetup
+DevConInit
 
 ========================================================================
 Section 5: Caveats                                       *DevConCaveats*
