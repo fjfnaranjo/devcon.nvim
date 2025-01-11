@@ -6,11 +6,9 @@ local function setup(opts)
 		core.setup(opts)
 	else
 		-- Alternatively, create a Neovim user command to setup the LSPs manually.
-		vim.api.nvim_create_user_command(
-			'DevConSetup',
-			function () core.setup(opts) end,
-			{}
-		)
+		vim.api.nvim_create_user_command("DevConSetup", function()
+			core.setup(opts)
+		end, {})
 	end
 end
 

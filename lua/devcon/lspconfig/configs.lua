@@ -5,15 +5,15 @@ local function lsp_cmd_init(cli, root_dir)
 		"--rm",
 		"-i",
 		"-v",
-		root_dir .. ':' .. root_dir,
+		root_dir .. ":" .. root_dir,
 		"-w",
-		root_dir
+		root_dir,
 	}
 end
 
 local function lsp_cmd_add_dir(lsp_cmd, extra_dir)
 	table.insert(lsp_cmd, "-v")
-	table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
+	table.insert(lsp_cmd, extra_dir .. ":" .. extra_dir)
 end
 
 local function lsp_cmd_add_image(lsp_cmd, sopts)
@@ -32,8 +32,8 @@ end
 
 local function lsp_setup(s, server, sopts, lsp_config)
 	local lsp_cmd = lsp_cmd_builder(s, sopts)
-	lsp_config['cmd'] = lsp_cmd
-	require 'lspconfig'[server].setup(lsp_config)
+	lsp_config["cmd"] = lsp_cmd
+	require("lspconfig")[server].setup(lsp_config)
 end
 
 return {
@@ -41,5 +41,5 @@ return {
 	lsp_cmd_add_dir = lsp_cmd_add_dir,
 	lsp_cmd_add_image = lsp_cmd_add_image,
 	lsp_cmd_builder = lsp_cmd_builder,
-	lsp_setup = lsp_setup
+	lsp_setup = lsp_setup,
 }

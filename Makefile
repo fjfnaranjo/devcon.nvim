@@ -19,7 +19,6 @@ stylua:
 		-v `pwd`:/src -w/src \
 		johnnymorganz/stylua:2.0.2 \
 		/stylua \
-		--output-format=summary \
 		lua
 
 .PHONY: stylua-check

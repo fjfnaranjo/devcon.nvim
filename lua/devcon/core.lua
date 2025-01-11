@@ -8,11 +8,11 @@ M.setup = function(opts)
 
 	-- Parse, detect or set default the container runtime command.
 	s.cli = opts.cli
-	if s.cli ~= 'docker' and s.cli ~= 'podman' then
-		s.cli = 'docker'
+	if s.cli ~= "docker" and s.cli ~= "podman" then
+		s.cli = "docker"
 		local podman_v = os.execute("podman -v >/dev/null 2>&1")
 		if podman_v == 0 then
-			s.cli = 'podman'
+			s.cli = "podman"
 		end
 	end
 
@@ -20,20 +20,28 @@ M.setup = function(opts)
 	s.arch = opts.arch
 	if not s.arch then
 		local cli_info_command = nil
-		if s.cli == 'docker' then
+		if s.cli == "docker" then
 			cli_info_command = {
-				s.cli, "info", "--format", "{{ .Server.Architecture }}"
+				s.cli,
+				"info",
+				"--format",
+				"{{ .Server.Architecture }}",
 			}
-		elseif s.cli == 'podman' then
+		elseif s.cli == "podman" then
 			cli_info_command = {
-				s.cli, "info", "--format", "{{ .Host.Arch }}"
+				s.cli,
+				"info",
+				"--format",
+				"{{ .Host.Arch }}",
 			}
 		end
 		if not cli_info_command then
 			M.settings = nil
 			vim.print(
 				"Cannot determine container runtime architecture info command"
-				.. " for runtime CLI '" .. s.cli .. "'."
+					.. " for runtime CLI '"
+					.. s.cli
+					.. "'."
 			)
 			return
 		end
@@ -44,14 +52,15 @@ M.setup = function(opts)
 			M.settings = nil
 			vim.print(
 				"Cannot determine container runtime architecture using '"
-				.. table.concat(cli_info_command, " ") .. "' command."
+					.. table.concat(cli_info_command, " ")
+					.. "' command."
 			)
 			return
 		end
 	end
 
 	-- Require lsp_servers setting.
-	if not opts.lsp_servers or type(opts.lsp_servers) ~= 'table' then
+	if not opts.lsp_servers or type(opts.lsp_servers) ~= "table" then
 		M.settings = nil
 		vim.print("lsp_servers is required by devcon .")
 		return
@@ -69,7 +78,11 @@ M.setup = function(opts)
 		if not sopts.root_dir then
 			if not opts.root_dir then
 				M.settings = nil
-				vim.print("root_dir is required by devcon for server '" .. server .. "' setup.")
+				vim.print(
+					"root_dir is required by devcon for server '"
+						.. server
+						.. "' setup."
+				)
 				return
 			else
 				sopts.root_dir = opts.root_dir
@@ -89,19 +102,19 @@ M.setup = function(opts)
 		end
 
 		-- Parse or set default devcon_image setting.
-		local project_dir_name = sopts.root_dir:gsub('.*%/', '')
+		local project_dir_name = sopts.root_dir:gsub(".*%/", "")
 		if not sopts.devcon_image then
 			sopts.devcon_image = project_dir_name
 		end
 
 		-- Parse or set default devcon_tag setting.
 		if not sopts.devcon_tag then
-			sopts.devcon_tag = 'devcon-' .. server
+			sopts.devcon_tag = "devcon-" .. server
 		end
 
 		-- Parse or set default containerfile setting.
 		if not sopts.containerfile then
-			sopts.containerfile = 'Dockerfile.' .. server .. '.devcon'
+			sopts.containerfile = "Dockerfile." .. server .. ".devcon"
 		end
 
 		-- Check each dir in extra_dirs setting exists.
@@ -111,8 +124,11 @@ M.setup = function(opts)
 				if not vim.fn.isdirectory(normalized) then
 					M.settings = nil
 					vim.print(
-						"Directory '" .. dir .. "' for server '" .. server
-						.. "' does not exists or can not be normalized by VIM."
+						"Directory '"
+							.. dir
+							.. "' for server '"
+							.. server
+							.. "' does not exists or can not be normalized by VIM."
 					)
 					return
 				end
@@ -134,12 +150,8 @@ M.setup = function(opts)
 		-- Get template contents.
 		local template_content = ""
 		local plugin_path = debug.getinfo(1, "S").source:match("@(.*/)")
-		local arch_path = (
-			plugin_path
-			.. "../../templates/"
-			.. sopts.template
-		)
-		local arch_template = io.open(arch_path, 'rb')
+		local arch_path = (plugin_path .. "../../templates/" .. sopts.template)
+		local arch_template = io.open(arch_path, "rb")
 		if arch_template then
 			template_content = arch_template:read("*a")
 			arch_template:close()
@@ -150,14 +162,17 @@ M.setup = function(opts)
 				.. sopts.template:match("(.+)/[^/]+$")
 				.. "/any"
 			)
-			local any_template = io.open(any_path, 'rb')
+			local any_template = io.open(any_path, "rb")
 			if any_template then
 				template_content = any_template:read("*a")
 				any_template:close()
 			else
 				vim.print(
 					"Cannot read template file. Tried: "
-					.. arch_path .. " and " .. any_path .. " ."
+						.. arch_path
+						.. " and "
+						.. any_path
+						.. " ."
 				)
 				return
 			end
@@ -165,14 +180,14 @@ M.setup = function(opts)
 
 		-- Write containerfile.
 		template_content, _ = template_content:gsub(
-			'{{[ ]*base_image|([^ ]*)[ ]*}}',
-			sopts.base_image or '%1'
+			"{{[ ]*base_image|([^ ]*)[ ]*}}",
+			sopts.base_image or "%1"
 		)
 		template_content, _ = template_content:gsub(
-			'{{[ ]*base_tag|([^ ]*)[ ]*}}',
-			sopts.base_tag or '%1'
+			"{{[ ]*base_tag|([^ ]*)[ ]*}}",
+			sopts.base_tag or "%1"
 		)
-		local template_file = io.open(sopts.containerfile, 'wb')
+		local template_file = io.open(sopts.containerfile, "wb")
 		if not template_file then
 			vim.print("Cannot open containerfile to write " .. sopts.containerfile)
 			return
@@ -196,13 +211,15 @@ M.setup = function(opts)
 	local last_win = 0
 	for server, sopts in pairs(s.lsp_servers) do
 		-- Prepare the build command.
-		local full_image_name =
-				sopts.devcon_image .. ":" .. sopts.devcon_tag
+		local full_image_name = sopts.devcon_image .. ":" .. sopts.devcon_tag
 		local cmd = {
-			s.cli, "build",
-			"-t", full_image_name,
-			"-f", sopts.containerfile,
-			"."
+			s.cli,
+			"build",
+			"-t",
+			full_image_name,
+			"-f",
+			sopts.containerfile,
+			".",
 		}
 
 		-- Issue the command in newly created buffers and windows.
@@ -213,13 +230,13 @@ M.setup = function(opts)
 			last_win = vim.api.nvim_open_win(b, true, {
 				vertical = true,
 				win = last_win,
-				style = 'minimal'
+				style = "minimal",
 			})
 		else
 			if not silent then
 				last_win = vim.api.nvim_open_win(b, false, {
 					win = last_win,
-					style = 'minimal'
+					style = "minimal",
 				})
 			end
 		end
@@ -233,7 +250,7 @@ M.setup = function(opts)
 				vim.schedule(function()
 					vim.api.nvim_chan_send(c, data or "")
 				end)
-			end
+			end,
 		}, function(obj)
 			vim.schedule(function()
 				vim.api.nvim_chan_send(c, obj.stdout or "")
@@ -252,7 +269,8 @@ M.setup = function(opts)
 	-- Check image exists for all configured servers.
 	for _, soptst in pairs(s.lsp_servers) do
 		local full_image_name = soptst.devcon_image .. ":" .. soptst.devcon_tag
-		local test_image = os.execute(s.cli .. " image inspect " .. full_image_name .. " 2>/dev/null")
+		local test_image =
+			os.execute(s.cli .. " image inspect " .. full_image_name .. " 2>/dev/null")
 		if test_image ~= 0 then
 			vim.print("Image " .. full_image_name .. " doesn't exists.")
 			return
@@ -269,22 +287,24 @@ M.setup = function(opts)
 
 		-- Always populate config with root_dir if missing.
 		if not lsp_config.root_dir then
-			lsp_config['root_dir'] = sopts.root_dir
+			lsp_config["root_dir"] = sopts.root_dir
 		end
 
 		-- use an specific setup for a server if available
 		local server_config = nil
 		local module_path = debug.getinfo(1, "S").source:match("@(.*/)")
-		local server_config_path = module_path .. 'lspconfig/configs/' .. server .. '.lua'
+		local server_config_path = module_path
+			.. "lspconfig/configs/"
+			.. server
+			.. ".lua"
 		if not vim.uv.fs_stat(server_config_path) then
-			server_config = require('devcon/lspconfig/configs')
+			server_config = require("devcon/lspconfig/configs")
 		else
-			server_config = require('devcon/lspconfig/configs/' .. server)
+			server_config = require("devcon/lspconfig/configs/" .. server)
 		end
 
 		server_config.lsp_setup(s, server, sopts, lsp_config)
 	end
-
 end
 
 return M
