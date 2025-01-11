@@ -8,56 +8,59 @@ M.setup = function(opts)
 
 	-- Parse, detect or set default the container runtime command.
 	s.cli = opts.cli
-	if not s.cli then
+	if s.cli ~= 'docker' and s.cli ~= 'podman' then
 		s.cli = 'docker'
-		local podman_v = io.popen("podman -v 2>/dev/null")
-		if podman_v then
-			local podman_v_read = podman_v:read(1) == "p" or false
-			podman_v:close()
-			if podman_v_read then
-				s.cli = 'podman'
-			end
+		local podman_v = os.execute("podman -v >/dev/null 2>&1")
+		if podman_v == 0 then
+			s.cli = 'podman'
 		end
-	end
-
-	-- Require lsp_servers setting.
-	s.lsp_servers = opts.lsp_servers
-	if not opts.lsp_servers or type(opts.lsp_servers) ~= 'table' then
-		M.settings = nil
-		vim.print("lsp_servers is required by devcon .")
-		return
-	end
-
-	-- If root_dir is specified at this level, normalize it.
-	if opts.root_dir then
-		opts.root_dir = vim.fs.normalize(opts.root_dir)
 	end
 
 	-- Guess docker/podman arch is not specified.
 	s.arch = opts.arch
 	if not s.arch then
-		local docker_cli_cmd = s.cli .. " info --format '{{ .Server.Architecture }}' 2>/dev/null"
-		local docker_shell = io.popen(docker_cli_cmd)
-		if docker_shell then
-			s.arch = docker_shell:read("*l")
-			docker_shell:close()
+		local cli_info_command = nil
+		if s.cli == 'docker' then
+			cli_info_command = {
+				s.cli, "info", "--format", "{{ .Server.Architecture }}"
+			}
+		elseif s.cli == 'podman' then
+			cli_info_command = {
+				s.cli, "info", "--format", "{{ .Host.Arch }}"
+			}
 		end
-		if not s.arch then
-			local podman_cli_cmd = s.cli .. " info --format '{{ .Host.Arch }}' 2>/dev/null"
-			local podman_shell = io.popen(podman_cli_cmd)
-			if podman_shell then
-				s.arch = podman_shell:read("*l")
-				podman_shell:close()
-			end
-			if s.arch:len()<1 then
-				M.settings = nil
-				vim.print(
-					"Cannot determine container runtime architecture using '"
-					.. s.cli .. " info' commands."
-				)
-				return
-			end
+		if not cli_info_command then
+			M.settings = nil
+			vim.print(
+				"Cannot determine container runtime architecture info command"
+				.. " for runtime CLI '" .. s.cli .. "'."
+			)
+			return
 		end
+		local cli_result = vim.system(cli_info_command, { text = true }):wait()
+		if cli_result.code == 0 then
+			s.arch = cli_result.stdout:gsub("\n$", "")
+		else
+			M.settings = nil
+			vim.print(
+				"Cannot determine container runtime architecture using '"
+				.. table.concat(cli_info_command, " ") .. "' command."
+			)
+			return
+		end
+	end
+
+	-- Require lsp_servers setting.
+	if not opts.lsp_servers or type(opts.lsp_servers) ~= 'table' then
+		M.settings = nil
+		vim.print("lsp_servers is required by devcon .")
+		return
+	end
+	s.lsp_servers = opts.lsp_servers
+
+	-- If root_dir is specified at this level, normalize it.
+	if opts.root_dir then
+		opts.root_dir = vim.fs.normalize(opts.root_dir)
 	end
 
 	-- For each lspconfig server ...
@@ -93,7 +96,7 @@ M.setup = function(opts)
 
 		-- Parse or set default devcon_tag setting.
 		if not sopts.devcon_tag then
-			sopts.devcon_tag = 'devcon'
+			sopts.devcon_tag = 'devcon-' .. server
 		end
 
 		-- Parse or set default containerfile setting.
@@ -143,7 +146,7 @@ M.setup = function(opts)
 		else
 			local any_path = (
 				plugin_path
-				.. "../templates/"
+				.. "../../templates/"
 				.. sopts.template:match("(.+)/[^/]+$")
 				.. "/any"
 			)
@@ -258,46 +261,30 @@ M.setup = function(opts)
 
 	-- Call LSP config for each configured server.
 	for server, sopts in pairs(s.lsp_servers) do
-		local full_image_name = sopts.devcon_image .. ":" .. sopts.devcon_tag
-
-		-- Build docker/podman run command.
-		local lsp_cmd = {
-			s.cli,
-			"run",
-			"--rm",
-			"-i",
-			"-v",
-			sopts.root_dir .. ':' .. sopts.root_dir,
-			"-w",
-			sopts.root_dir
-		}
-		for _, extra_dir in pairs(sopts.extra_dirs) do
-			table.insert(lsp_cmd, "-v")
-			table.insert(lsp_cmd, extra_dir .. ':' .. extra_dir)
-		end
-		table.insert(lsp_cmd, full_image_name)
-
-		-- When calculating each server config, try to use a default
-		-- configurer if specified or use passover.
+		-- Per server config
 		local lsp_config = {}
-		local config_lsp = function(x) return x end
-		if type(sopts.config_lsp) == "function" then
-			config_lsp = sopts.config_lsp
-		end
-		local sopts_config = {}
 		if sopts.config then
-			sopts_config = sopts.config
+			lsp_config = sopts.config
 		end
-		lsp_config = config_lsp(sopts_config)
 
 		-- Always populate config with root_dir if missing.
 		if not lsp_config.root_dir then
 			lsp_config['root_dir'] = sopts.root_dir
 		end
 
-		lsp_config['cmd'] = lsp_cmd
-		require 'lspconfig'[server].setup(lsp_config)
+		-- use an specific setup for a server if available
+		local server_config = nil
+		local module_path = debug.getinfo(1, "S").source:match("@(.*/)")
+		local server_config_path = module_path .. 'lspconfig/configs/' .. server .. '.lua'
+		if not vim.uv.fs_stat(server_config_path) then
+			server_config = require('devcon/lspconfig/configs')
+		else
+			server_config = require('devcon/lspconfig/configs/' .. server)
+		end
+
+		server_config.lsp_setup(s, server, sopts, lsp_config)
 	end
+
 end
 
 return M
