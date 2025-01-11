@@ -1,3 +1,3 @@
 FROM {{ base_image|node }}:{{ base_tag|23-alpine3.21 }}
 RUN npm -g install emmet-ls
-ENTRYPOINT ["emmet-ls"]
+ENTRYPOINT ["emmet-ls", "--stdio"]
