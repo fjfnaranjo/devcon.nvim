@@ -1,4 +1,4 @@
-*devcon.txt* generate basic dev container files with LSP support
+*devcon.txt* dev containers support for LSP serves
 *devcon* *DevCon*
 
                      ____            ______ ~
@@ -7,8 +7,8 @@
                   / /_/ /  __/ |/ / /___/ /_/ / / / / ~
                  /_____/\___/|___/\____/\____/_/ /_/ ~
 
-          Generate a basic set of files to add dev containers
-                 support to a project edited in Neovim.
+         Generate a dev container with an LSP server and use
+                     it with the Neovim client.
 
 ========================================================================
 CONTENTS
@@ -16,7 +16,6 @@ CONTENTS
     1. Rationale ..................................... |DevConRationale|
     2. Usage ......................................... |DevConUsage|
     3. Settings ...................................... |DevConSettings|
-    3. Commands ...................................... |DevConCommands|
     4. Caveats ....................................... |DevConCaveats|
 
 ========================================================================
@@ -33,9 +32,9 @@ Podman) to keep all LSP stuff inside a disposable container. Full
 integration is achieved by using volume mounts with the project folder
 and local library paths in exactly the same paths inside the container.
 
-With DevCon, an some tweaks to the config if needed, the creation of
-containerfiles, building of images and injecting the settings are
-streamlined using a few commands and handy provided templates.
+With DevCon, and some tweaks to the config if needed, the creation of
+containerfiles, building of images and injection of settings are
+streamlined using handy provided templates.
 
 ========================================================================
 Section 2: Usage                                           *DevConUsage*
@@ -44,9 +43,6 @@ Section 2: Usage                                           *DevConUsage*
 Section 3: Settings                                     *DevConSettings*
 
 opts = {
-
-  (optional, for manual lazy loading)
-  lazy = false,
 
   (default to podman if available, else docker)
   cli = 'docker',
@@ -95,7 +91,6 @@ lua_ls = {
 
   (default to empty table)
   config {
-    on_attach = ?
     capabilities = ?
   }
 
@@ -103,12 +98,7 @@ lua_ls = {
 
 
 ========================================================================
-Section 4: Commands                                     *DevConCommands*
-
-DevConInit
-
-========================================================================
-Section 5: Caveats                                       *DevConCaveats*
+Section 4: Caveats                                       *DevConCaveats*
 
 
 ------------------------------------------------------------------------

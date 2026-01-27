@@ -33,7 +33,8 @@ end
 local function lsp_setup(s, server, sopts, lsp_config)
 	local lsp_cmd = lsp_cmd_builder(s, sopts)
 	lsp_config["cmd"] = lsp_cmd
-	require("lspconfig")[server].setup(lsp_config)
+	vim.lsp.config(server, lsp_config)
+	vim.lsp.enable(server)
 end
 
 return {

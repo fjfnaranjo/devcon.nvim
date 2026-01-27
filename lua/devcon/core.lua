@@ -139,7 +139,10 @@ M.setup = function(opts)
 
 		-- Parse or set default config setting.
 		if not sopts.config then
-			sopts.config = sopts.config_lsp() or {}
+			sopts.config = {}
+			if type(sopts.config_lsp) == "function" then
+				sopts.config = sopts.config_lsp() or {}
+			end
 		end
 	end
 
@@ -259,9 +262,6 @@ M.setup = function(opts)
 		end)
 	end
 
-	-- Requires and call 'lspconfig'[SERVER].setup() for each of the
-	-- configured (SERVER)s.
-	--
 	-- This is the core function of the plugin. Normal lspconfig cmd's
 	-- are transformed to docker/podman run commands here. Also, the
 	-- proper volumes are added here.

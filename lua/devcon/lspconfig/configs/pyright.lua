@@ -6,10 +6,8 @@ local function lsp_setup(s, server, sopts, lsp_config)
 	end
 	local lsp_cmd = generic_config.lsp_cmd_builder(s, sopts)
 	lsp_config["cmd"] = lsp_cmd
-	require("lspconfig").pyright.setup(lsp_config)
-	--if lsp_config.pythonpath then
-	--	vim.cmd('PyrightSetPythonPath ' .. lsp_config.pythonpath)
-	--end
+	vim.lsp.config("pyright", lsp_config)
+	vim.lsp.enable("pyright")
 end
 
 return { lsp_setup = lsp_setup }
