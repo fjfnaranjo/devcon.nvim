@@ -1,5 +1,9 @@
 # devcon.nvim
 
+> ⚠⚠ This project has been archived in favor of
+> [safer](https://github.com/fjfnaranjo/safer).
+> It uses a different strategy to achieve a similar result.
+
 > ⚠ This is currently a work in progress. I still have to improve the
 > documentation and add support for more LSP servers.
 
